@@ -6,8 +6,10 @@
 /public/bundles/
 /var/
 /vendor/
+/.phpunit.result.cache
 ###> local ###
 /.cursor/
+/.idea/
 *.txt
 
 # Windows reserved device names (Git cannot index them)
