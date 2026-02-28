@@ -361,65 +361,6 @@ header.page-header {
   color: var(--negative);
 }
 
-.events-state {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-}
-
-.events-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.events-item {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.875rem;
-  color: var(--text);
-}
-
-.events-item:last-child {
-  border-bottom: none;
-}
-
-.events-item__time {
-  color: var(--text-muted);
-  margin-right: 0.5rem;
-}
-
-.events-item__level {
-  display: inline-block;
-  min-width: 4em;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.events-item__message {
-  margin-left: 0.25rem;
-}
-
-.events-item__context {
-  display: block;
-  margin-top: 0.25rem;
-  color: var(--text-muted);
-  font-size: 0.8125rem;
-}
-
-.events-item--error .events-item__level {
-  color: var(--negative);
-}
-
-.events-item--new {
-  animation: events-item-new 0.5s ease-out;
-}
-
-@keyframes events-item-new {
-  0% { background: var(--accent-dim); opacity: 1; }
-  100% { background: transparent; opacity: 1; }
-}
-
 /* Footer */
 footer.page-footer {
   margin-top: 2rem;

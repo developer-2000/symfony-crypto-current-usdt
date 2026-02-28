@@ -13,35 +13,37 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class PortfolioSnapshotRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
-    {
+    public function __construct(
+        ManagerRegistry $registry,
+        private readonly int $maxHours,
+    ) {
         parent::__construct($registry, PortfolioSnapshot::class);
     }
 
     /**
-     * Снапшоты за период для API history. Сортировка по calculated_at ASC.
+     * Snapshots for API history period. One of hours or minutes is set.
+     * Ordered by calculated_at ASC. Max rows maxHours * 60.
      *
      * @return list<PortfolioSnapshot>
      */
-    public function findForHistory(?\DateTimeInterface $from, ?\DateTimeInterface $to, ?int $hours): array
+    public function findForHistory(?int $hours, ?int $minutes): array
     {
-        $qb = $this->createQueryBuilder('s')
-            ->orderBy('s.calculatedAt', 'ASC');
-
-        if ($hours !== null) {
-            $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        if ($minutes !== null) {
+            $from = $now->modify("-{$minutes} minutes");
+            $to = $now;
+        } else {
             $from = $now->modify("-{$hours} hours");
             $to = $now;
         }
 
-        if ($from !== null) {
-            $qb->andWhere('s.calculatedAt >= :from')
-                ->setParameter('from', $from);
-        }
-        if ($to !== null) {
-            $qb->andWhere('s.calculatedAt <= :to')
-                ->setParameter('to', $to);
-        }
+        $qb = $this->createQueryBuilder('s')
+            ->where('s.calculatedAt >= :from')
+            ->andWhere('s.calculatedAt <= :to')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->orderBy('s.calculatedAt', 'ASC')
+            ->setMaxResults($this->maxHours * 60);
 
         return $qb->getQuery()->getResult();
     }

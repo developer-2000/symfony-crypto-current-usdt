@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Service\Binance;
 
 /**
- * Возвращает средние цены по символам (symbol => price in float).
+ * Returns average prices by symbol (symbol => price as float).
  *
  * @return array<string, float>
  */
 interface BinancePriceServiceInterface
 {
     /**
-     * @param list<string> $symbols например ['BTCUSDT', 'ETHUSDT']
+     * @param list<string> $symbols e.g. ['BTCUSDT', 'ETHUSDT']
      * @return array<string, float> symbol => price
      *
      * @throws \App\Exception\BinanceApiException

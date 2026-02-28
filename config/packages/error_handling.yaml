@@ -1,20 +1,19 @@
 # ---------------------------------------------------------------------------
-# 9. Обработка ошибок и границы (политика, реализация в коде)
+# 9. Error handling and boundaries (policy, implementation in code)
 # ---------------------------------------------------------------------------
-# Документация правил. Параметры лимитов — в portfolio_history_api.yaml.
+# Rules documentation. Limit parameters in portfolio_history_api.yaml.
 #
-# 9.1 Binance (команда app:portfolio:snapshot):
-#   — Таймаут / 5xx / неверный JSON: снапшот не сохраняется, ошибка логируется
-#     (канал portfolio), выбрасывается App\Exception\BinanceApiException.
-#   — Команда ловит исключение, пишет в лог, возвращает Command::FAILURE (cron
-#     видит ненулевой код выхода и может отправить уведомление).
-#   — Реализация: BinancePriceService, PortfolioSnapshotCommand.
+# 9.1 Binance (command app:portfolio:snapshot):
+#   — Timeout / 5xx / invalid JSON: snapshot not saved, error logged (channel portfolio),
+#     App\Exception\BinanceApiException thrown.
+#   — Command catches exception, logs, returns Command::FAILURE (cron sees non-zero exit).
+#   — Implementation: BinancePriceService, PortfolioSnapshotCommand.
 #
 # 9.2 API GET /api/portfolio/history:
-#   — Нет данных в диапазоне: ответ 200 и тело [] (не 404).
-#   — Невалидные параметры (hours вне 1..max, from > to, неверный формат дат,
-#     смешанные hours и from/to): ответ 400 с полем "error" и текстом.
-#   — Реализация: PortfolioHistoryController.
+#   — No data in range: 200 with body [] (not 404).
+#   — Invalid params (hours or minutes out of range): 422 with "error" field and message.
+#   — Implementation: App\Request\Api\PortfolioHistoryRequest (rules only there),
+#     FormRequestValueResolver, RequestValidationExceptionListener.
 # ---------------------------------------------------------------------------
 
 parameters: {}

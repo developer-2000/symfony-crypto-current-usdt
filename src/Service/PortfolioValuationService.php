@@ -28,9 +28,9 @@ final class PortfolioValuationService
     }
 
     /**
-     * Рассчитывает стоимость портфеля и сохраняет снапшот за текущий слот (час или секунда по granularity).
-     * Идемпотентно: при уже существующей записи за этот час дубликат не создаётся.
-     * Возвращает данные сохранённого снапшота для публикации в Mercure или null при дубликате.
+     * Computes portfolio value and saves snapshot for current slot (hour or second by granularity).
+     * Idempotent: no duplicate if a record for this slot already exists.
+     * Returns saved snapshot data for Mercure publish or null on duplicate.
      *
      * @return array{calculated_at: string, amount_usdt: float}|null
      * @throws \App\Exception\BinanceApiException

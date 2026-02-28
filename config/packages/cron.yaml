@@ -1,12 +1,11 @@
 # ---------------------------------------------------------------------------
-# Cron: расписание снапшота портфеля (используется в Docker entrypoint)
+# Cron: portfolio snapshot schedule (used in Docker entrypoint)
 # ---------------------------------------------------------------------------
-# Переменная в .env (необязательно; при отсутствии используется значение по умолчанию):
-#   CRON_SNAPSHOT_MINUTES — интервал запуска команды app:portfolio:snapshot (в минутах).
-#                           Например 60 = каждый час. Записывается в /etc/cron.d/ внутри контейнера.
+# .env variable (optional; default below):
+#   CRON_SNAPSHOT_MINUTES — interval to run app:portfolio:snapshot (minutes). E.g. 60 = hourly. Written to /etc/cron.d/ in container.
 # ---------------------------------------------------------------------------
 
 parameters:
-    # Значение по умолчанию, если CRON_SNAPSHOT_MINUTES не задан в .env (как env('KEY', 60) в Laravel)
+    # Default when CRON_SNAPSHOT_MINUTES is not set in .env (like env('KEY', 60) in Laravel)
     _cron_snapshot_minutes_default: 60
     cron.snapshot_minutes: '%env(int:default:_cron_snapshot_minutes_default:CRON_SNAPSHOT_MINUTES)%'

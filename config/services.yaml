@@ -31,21 +31,25 @@ services:
 
     App\Command\PortfolioSnapshotCommand:
 
-    App\Controller\Api\PortfolioHistoryController:
+    App\Repository\PortfolioSnapshotRepository:
         arguments:
             $maxHours: '%portfolio_history.max_hours%'
-            $defaultHours: '%portfolio_history.default_hours%'
 
-    App\Service\AppLogReader:
-        arguments:
-            $defaultLimit: '%events_api.limit_default%'
+    App\Controller\Api\PortfolioHistoryController:
 
-    App\Controller\Api\EventsController:
-        arguments:
-            $defaultLimit: '%events_api.limit_default%'
-            $maxLimit: '%events_api.limit_max%'
-
-    App\Controller\Api\PortfolioBreakdownController:
+    App\Service\PortfolioBreakdownService:
         arguments:
             $amounts: '%portfolio.amounts%'
             $symbols: '%binance.symbols%'
+
+    App\Controller\Api\PortfolioBreakdownController:
+
+    App\Controller\FormRequestValueResolver:
+        arguments:
+            $container: '@service_container'
+        tags:
+            - { name: controller.argument_value_resolver, priority: 50 }
+
+    App\EventListener\RequestValidationExceptionListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.exception }

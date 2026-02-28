@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Дашборд портфеля — стоимость в USDT{% endblock %}
+{% block title %}Portfolio dashboard — value in USDT{% endblock %}
 
 {% block stylesheets %}
     {{ parent() }}
@@ -15,13 +15,13 @@
 {% block body %}
 <div class="page">
     <header class="page-header">
-        <h1><a href="{{ path('app_home') }}">Портфель USDT</a></h1>
+        <h1><a href="{{ path('app_home') }}">Portfolio USDT</a></h1>
         <div class="header-right">
-            <div id="mercure-status" class="mercure-status" aria-live="polite" title="Статус подписки Mercure">Mercure (<span id="mercure-state" class="mercure-status__state mercure-status__state--off">—</span>)</div>
-            <div class="period-selector" role="tablist" aria-label="Период графика">
-                <button type="button" class="active" data-minutes="10" role="tab" aria-selected="true">10 мин</button>
-                <button type="button" data-hours="1" role="tab" aria-selected="false">1 ч</button>
-                <button type="button" data-hours="24" role="tab" aria-selected="false">24 ч</button>
+            <div id="mercure-status" class="mercure-status" aria-live="polite" title="Mercure subscription status">Mercure (<span id="mercure-state" class="mercure-status__state mercure-status__state--off">—</span>)</div>
+            <div class="period-selector" role="tablist" aria-label="Chart period">
+                <button type="button" class="active" data-minutes="10" role="tab" aria-selected="true">10 min</button>
+                <button type="button" data-hours="1" role="tab" aria-selected="false">1 h</button>
+                <button type="button" data-hours="24" role="tab" aria-selected="false">24 h</button>
             </div>
         </div>
     </header>
@@ -33,19 +33,19 @@
             <div class="cards-col">
                 <div class="cards">
                     <div class="card" id="card-last">
-                        <div class="card__label">Текущая стоимость</div>
+                        <div class="card__label">Current value</div>
                         <div class="card__value" id="value-last">—</div>
                     </div>
                     <div class="card" id="card-change">
-                        <div class="card__label">Изменение за период</div>
+                        <div class="card__label">Change over period</div>
                         <div class="card__value" id="value-change">—</div>
                     </div>
                 </div>
             </div>
-            <section class="events-section" aria-label="Журнал стоимости">
+            <section class="events-section" aria-label="Value log">
                 <div class="events-section__head">
-                    <h2 class="events-section__title">Журнал стоимости</h2>
-                    <h3 class="history-block__title">История за <span id="history-period-label">10 мин</span></h3>
+                    <h2 class="events-section__title">Value log</h2>
+                    <h3 class="history-block__title">History for <span id="history-period-label">10 min</span></h3>
                 </div>
                 <div id="history-block" class="history-block hidden">
                     <ul id="history-list" class="history-list"></ul>
@@ -56,11 +56,11 @@
         <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
         <div class="chart-wrap" id="chart-wrap">
-            <div id="chart-state-loading" class="state-message">Загрузка…</div>
-            <div id="chart-state-empty" class="state-message hidden">Нет данных за выбранный период.</div>
+            <div id="chart-state-loading" class="state-message">Loading…</div>
+            <div id="chart-state-empty" class="state-message hidden">No data for the selected period.</div>
             <div id="chart-state-error" class="state-message error hidden"></div>
             <div id="chart-container" class="hidden" style="position: relative; height: 320px;">
-                <canvas id="portfolio-chart" aria-label="График стоимости портфеля по времени"></canvas>
+                <canvas id="portfolio-chart" aria-label="Portfolio value chart over time"></canvas>
             </div>
         </div>
     </main>
@@ -85,39 +85,64 @@
     let chart = null;
     let currentPeriod = { minutes: 10 };
 
+    /**
+     * Formats number as USDT amount (2 decimal places).
+     * @param {number|null|undefined} n
+     * @returns {string}
+     */
     function formatUsdt(n) {
-        if (n == null || Number.isNaN(n)) return '—';
-        return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' USDT';
+        if (n == null || Number.isNaN(n)) { return '—'; }
+        return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' USDT';
     }
 
+    /**
+     * Formats number as percent with sign (+/-) and two decimal places.
+     * @param {number|null|undefined} n
+     * @returns {string}
+     */
     function formatPercent(n) {
-        if (n == null || Number.isNaN(n)) return '—';
+        if (n == null || Number.isNaN(n)) { return '—'; }
         const s = n >= 0 ? '+' + n.toFixed(2) : n.toFixed(2);
         return s + '%';
     }
 
+    /**
+     * Sets card class for change color (positive/negative).
+     * @param {HTMLElement} el element with class card__value
+     * @param {boolean|null|undefined} positive true — green, false — red
+     */
     function setCardClass(el, positive) {
         el.classList.remove('card__value--positive', 'card__value--negative');
-        if (positive === true) el.classList.add('card__value--positive');
-        if (positive === false) el.classList.add('card__value--negative');
+        if (positive === true) { el.classList.add('card__value--positive'); }
+        if (positive === false) { el.classList.add('card__value--negative'); }
     }
 
+    /**
+     * Shows one of chart state blocks (loading / empty / error / chart), hides the rest.
+     * @param {string} id element id to show (chart-state-loading, chart-state-empty, chart-state-error, chart-container)
+     */
     function showState(id) {
         [stateLoading, stateEmpty, stateError, container].forEach(function (el) {
             el.classList.add('hidden');
         });
         const show = document.getElementById(id);
-        if (show) show.classList.remove('hidden');
+        if (show) { show.classList.remove('hidden'); }
     }
 
+    /**
+     * Fetches portfolio history from API for the selected period, updates cards, chart and history list.
+     * @param {Object} period either { minutes: N } or { hours: N }
+     * @param {boolean} [skipCache] if true appends _=timestamp to URL to bypass cache (e.g. after Mercure)
+     */
     function load(period, skipCache) {
         currentPeriod = period;
         showState('chart-state-loading');
-        var url = API_URL + (period.minutes != null ? '?minutes=' + encodeURIComponent(period.minutes) : '?hours=' + encodeURIComponent(period.hours));
-        if (skipCache) url += '&_=' + Date.now();
+        const base = API_URL + (period.minutes != null ? '?minutes=' + encodeURIComponent(period.minutes) : '?hours=' + encodeURIComponent(period.hours));
+        const url = skipCache ? base + '&_=' + Date.now() : base;
+
         fetch(url)
             .then(function (r) {
-                if (!r.ok) throw new Error('Ошибка загрузки: ' + r.status);
+                if (!r.ok) { throw new Error('Load error: ' + r.status); }
                 return r.json();
             })
             .then(function (data) {
@@ -129,7 +154,7 @@
                     if (historyBlock && historyList) {
                         historyBlock.classList.remove('hidden');
                         historyPeriodLabel.textContent = periodLabel(currentPeriod);
-                        historyList.innerHTML = '<li class="history-item history-item--empty">Нет данных за выбранный период.</li>';
+                        historyList.innerHTML = '<li class="history-item history-item--empty">No data for the selected period.</li>';
                         historyList.classList.remove('hidden');
                     }
                     return;
@@ -143,7 +168,7 @@
 
                 const labels = data.map(function (d) {
                     const t = new Date(d.time);
-                    return t.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                    return t.toLocaleDateString('en-US', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
                 });
                 const values = data.map(function (d) { return d.amount_usdt; });
 
@@ -153,7 +178,7 @@
                 const lineColor = style.getPropertyValue('--chart-line').trim() || '#3fb950';
                 const textMuted = style.getPropertyValue('--text-muted').trim() || '#8b9cb3';
 
-                if (chart) chart.destroy();
+                if (chart) { chart.destroy(); }
                 chart = new Chart(canvas, {
                     type: 'line',
                     data: {
@@ -190,8 +215,8 @@
                     historyBlock.classList.remove('hidden');
                     historyPeriodLabel.textContent = periodLabel(currentPeriod);
                     historyList.innerHTML = data.slice().reverse().map(function (d) {
-                        var t = new Date(d.time);
-                        var timeStr = t.toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        const t = new Date(d.time);
+                        const timeStr = t.toLocaleString('en-US', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' });
                         return '<li class="history-item"><span class="history-item__time">' + escapeHtml(timeStr) + '</span> <span class="history-item__value">' + formatUsdt(d.amount_usdt) + '</span></li>';
                     }).join('');
                     historyList.classList.remove('hidden');
@@ -200,83 +225,122 @@
             .catch(function (err) {
                 cards.last.textContent = '—';
                 cards.change.textContent = '—';
-                stateError.textContent = err.message || 'Ошибка загрузки данных.';
+                stateError.textContent = err.message || 'Error loading data.';
                 showState('chart-state-error');
                 if (chart) { chart.destroy(); chart = null; }
                 if (historyBlock && historyList) {
                     historyBlock.classList.remove('hidden');
-                    if (historyPeriodLabel) historyPeriodLabel.textContent = periodLabel(currentPeriod);
-                    historyList.innerHTML = '<li class="history-item history-item--error">Ошибка загрузки.</li>';
+                    if (historyPeriodLabel) { historyPeriodLabel.textContent = periodLabel(currentPeriod); }
+                    historyList.innerHTML = '<li class="history-item history-item--error">Load error.</li>';
                     historyList.classList.remove('hidden');
                 }
             });
     }
 
+    /**
+     * Returns period label for UI («10 min», «1 h», «24 h», etc.).
+     * @param {Object} period object with minutes or hours
+     * @returns {string}
+     */
     function periodLabel(period) {
-        if (period.minutes != null) return period.minutes === 10 ? '10 мин' : period.minutes + ' мин';
-        if (period.hours === 1) return '1 ч';
-        if (period.hours === 24) return '24 ч';
-        return period.hours + ' ч';
+        if (period.minutes != null) { return period.minutes === 10 ? '10 min' : period.minutes + ' min'; }
+        if (period.hours === 1) { return '1 h'; }
+        if (period.hours === 24) { return '24 h'; }
+        return period.hours + ' h';
     }
 
+    /**
+     * Reads period from current URL query (minutes or hours). Used on page load and popstate.
+     * @returns { { minutes: number } | { hours: number } | null } period or null if params missing/invalid
+     */
     function getPeriodFromUrl() {
-        var p = new URLSearchParams(window.location.search);
-        var m = p.get('minutes');
-        var h = p.get('hours');
-        if (m !== null && m !== '') { var n = parseInt(m, 10); if (n >= 1 && n <= 43200) return { minutes: n }; }
-        if (h !== null && h !== '') { var n = parseInt(h, 10); if (n >= 1 && n <= 720) return { hours: n }; }
+        const p = new URLSearchParams(window.location.search);
+        const m = p.get('minutes');
+        const h = p.get('hours');
+        if (m !== null && m !== '') { const n = parseInt(m, 10); if (n >= 1 && n <= 1440) { return { minutes: n }; } }
+        if (h !== null && h !== '') { const n = parseInt(h, 10); if (n >= 1 && n <= 24) { return { hours: n }; } }
         return null;
     }
 
+    /**
+     * Writes selected period to URL (minutes or hours) via pushState, no page reload.
+     * @param {Object} period object with minutes or hours
+     */
     function setPeriodInUrl(period) {
-        var url = new URL(window.location.href);
+        const url = new URL(window.location.href);
         url.searchParams.delete('minutes');
         url.searchParams.delete('hours');
-        if (period.minutes != null) url.searchParams.set('minutes', String(period.minutes));
-        else url.searchParams.set('hours', String(period.hours));
+        if (period.minutes != null) { url.searchParams.set('minutes', String(period.minutes)); }
+        else { url.searchParams.set('hours', String(period.hours)); }
         window.history.pushState({}, '', url.toString());
     }
 
+    /**
+     * Highlights active period button by data-minutes/data-hours to match current period.
+     * @param {Object} period object with minutes or hours
+     */
     function setActiveButtonForPeriod(period) {
         document.querySelectorAll('.period-selector button').forEach(function (b) {
-            var m = b.getAttribute('data-minutes');
-            var h = b.getAttribute('data-hours');
-            var match = (period.minutes != null && m !== null && m !== '' && parseInt(m, 10) === period.minutes) ||
+            const m = b.getAttribute('data-minutes');
+            const h = b.getAttribute('data-hours');
+            const match = (period.minutes != null && m !== null && m !== '' && parseInt(m, 10) === period.minutes) ||
                 (period.hours != null && h !== null && h !== '' && parseInt(h, 10) === period.hours);
             b.classList.toggle('active', !!match);
             b.setAttribute('aria-selected', match ? 'true' : 'false');
         });
     }
 
+    /**
+     * Applies selected period: updates currentPeriod, buttons, label and triggers data load (one API request).
+     * Called on page load, period button click and popstate.
+     * @param {Object} period object with minutes or hours
+     */
+    function applyPeriod(period) {
+        currentPeriod = period;
+        setActiveButtonForPeriod(period);
+        if (historyPeriodLabel) { historyPeriodLabel.textContent = periodLabel(period); }
+        load(period);
+    }
+
     document.querySelectorAll('.period-selector button').forEach(function (btn) {
         btn.addEventListener('click', function () {
-            var period;
-            var m = this.getAttribute('data-minutes');
-            var h = this.getAttribute('data-hours');
-            if (m !== null && m !== '') period = { minutes: parseInt(m, 10) };
-            else period = { hours: parseInt(h, 10) };
+            const m = this.getAttribute('data-minutes');
+            const h = this.getAttribute('data-hours');
+            const period = (m !== null && m !== '') ? { minutes: parseInt(m, 10) } : { hours: parseInt(h, 10) };
             setPeriodInUrl(period);
-            setActiveButtonForPeriod(period);
-            load(period);
+            applyPeriod(period);
         });
     });
 
+    window.addEventListener('popstate', function () {
+        const period = getPeriodFromUrl();
+        if (period) { applyPeriod(period); }
+    });
+
+    /**
+     * Shows toast notification for 4 seconds.
+     * @param {string} text message text
+     */
     function showToast(text) {
-        var toast = document.getElementById('toast');
-        if (!toast) return;
+        const toast = document.getElementById('toast');
+        if (!toast) { return; }
         toast.textContent = text;
         toast.classList.remove('hidden');
         setTimeout(function () { toast.classList.add('hidden'); }, 4000);
     }
 
-    var mercureStateEl = document.getElementById('mercure-state');
+    const mercureStateEl = document.getElementById('mercure-state');
+    /**
+     * Updates Mercure status indicator (ON/OFF and highlight class).
+     * @param {boolean} on true — connected, false — disconnected/error
+     */
     function setMercureState(on) {
-        if (!mercureStateEl) return;
+        if (!mercureStateEl) { return; }
         mercureStateEl.textContent = on ? 'ON' : 'OFF';
         mercureStateEl.classList.remove('mercure-status__state--on', 'mercure-status__state--off');
         mercureStateEl.classList.add(on ? 'mercure-status__state--on' : 'mercure-status__state--off');
     }
-    var mercureEventSource = null;
+    let mercureEventSource = null;
     if (MERCURE_SUBSCRIBE_URL) {
         try {
             setMercureState(false);
@@ -285,19 +349,19 @@
                 setMercureState(true);
             };
             mercureEventSource.onmessage = function (e) {
-                var payload = null;
+                let payload = null;
                 try { payload = e.data ? JSON.parse(e.data) : null; } catch (err) {}
                 if (payload && typeof payload.amount_usdt === 'number' && cards.last) {
                     cards.last.textContent = formatUsdt(payload.amount_usdt);
                 }
-                showToast('Новые данные по портфелю');
+                showToast('New portfolio data');
                 load(currentPeriod, true);
             };
             mercureEventSource.onerror = function () {
                 setMercureState(false);
             };
             window.addEventListener('beforeunload', function () {
-                if (mercureEventSource) mercureEventSource.close();
+                if (mercureEventSource) { mercureEventSource.close(); }
             });
         } catch (err) {
             setMercureState(false);
@@ -306,17 +370,18 @@
         setMercureState(false);
     }
 
+    /**
+     * Escapes string for safe HTML insertion (XSS protection when rendering history list).
+     * @param {string} s
+     * @returns {string}
+     */
     function escapeHtml(s) {
-        var div = document.createElement('div');
+        const div = document.createElement('div');
         div.textContent = s;
         return div.innerHTML;
     }
 
-    var initialPeriod = getPeriodFromUrl() || { minutes: 10 };
-    currentPeriod = initialPeriod;
-    setActiveButtonForPeriod(initialPeriod);
-    if (historyPeriodLabel) historyPeriodLabel.textContent = periodLabel(initialPeriod);
-    load(initialPeriod);
+    applyPeriod(getPeriodFromUrl() || { minutes: 10 });
 })();
 </script>
 {% endblock %}

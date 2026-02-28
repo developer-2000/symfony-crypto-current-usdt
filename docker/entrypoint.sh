@@ -9,7 +9,7 @@ if [ ! -f /var/www/html/vendor/autoload.php ]; then
     composer install --no-interaction
 fi
 
-# Снапшот портфеля: либо цикл каждые N секунд (тест), либо cron каждые N минут
+# Portfolio snapshot: either loop every N seconds (test) or cron every N minutes
 APP_ENV_CRON="${APP_ENV:-prod}"
 if [ -n "${SNAPSHOT_INTERVAL_SECONDS}" ] && [ "${SNAPSHOT_INTERVAL_SECONDS}" -gt 0 ] 2>/dev/null; then
   echo "Starting portfolio snapshot loop every ${SNAPSHOT_INTERVAL_SECONDS}s (real Binance -> DB -> Mercure)"
@@ -24,8 +24,10 @@ else
   CRON_ENV="/etc/portfolio-snapshot.env"
   mkdir -p /var/www/html/var/log
   touch "$CRON_LOG"
+  chmod 666 "$CRON_LOG"
+  chmod 777 /var/www/html/var/log
   echo "Cron snapshot: every ${CRON_MIN} min, log: $CRON_LOG"
-  # Передать в cron те же env, что и контейнеру (MERCURE_*, APP_ENV), иначе PHP не публикует в Mercure
+  # Pass same env to cron as container (MERCURE_*, APP_ENV) so PHP can publish to Mercure
   {
     echo "export PATH=/usr/local/bin:/usr/bin:/bin"
     echo "export APP_ENV=${APP_ENV_CRON}"
@@ -56,7 +58,7 @@ fi
 
 php-fpm -D
 
-# Ждём появления сокета PHP-FPM (избегаем connection reset при первом запросе)
+# Wait for PHP-FPM socket (avoid connection reset on first request)
 sock="/var/run/php/php-fpm.sock"
 for i in $(seq 1 30); do
     [ -S "$sock" ] && break

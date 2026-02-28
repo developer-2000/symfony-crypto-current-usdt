@@ -1,13 +1,13 @@
 # ---------------------------------------------------------------------------
-# API GET /api/portfolio/history — лимиты и значения по умолчанию
+# API GET /api/portfolio/history — limits and defaults
 # ---------------------------------------------------------------------------
-# Переменные в .env (необязательны; при отсутствии используются значения ниже):
-#   PORTFOLIO_HISTORY_MAX_HOURS   — максимум часов для параметра ?hours=N (защита от тяжёлых выборок)
-#   PORTFOLIO_HISTORY_DEFAULT_HOURS — значение по умолчанию для hours, если клиент не передал ни hours, ни from/to
+# .env variables (optional; defaults below):
+#   PORTFOLIO_HISTORY_MAX_HOURS   — max hours for ?hours=N (guard against heavy queries)
+#   PORTFOLIO_HISTORY_DEFAULT_HOURS — default for hours when client sends neither hours nor minutes
 # ---------------------------------------------------------------------------
 
 parameters:
-    _portfolio_history_max_hours_default: 720
+    _portfolio_history_max_hours_default: 24
     _portfolio_history_default_hours_default: 24
     portfolio_history.max_hours: '%env(int:default:_portfolio_history_max_hours_default:PORTFOLIO_HISTORY_MAX_HOURS)%'
     portfolio_history.default_hours: '%env(int:default:_portfolio_history_default_hours_default:PORTFOLIO_HISTORY_DEFAULT_HOURS)%'

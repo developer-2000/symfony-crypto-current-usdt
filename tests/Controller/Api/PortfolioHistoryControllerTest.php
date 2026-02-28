@@ -43,7 +43,7 @@ class PortfolioHistoryControllerTest extends WebTestCase
     public function testHistoryOrderAscByTime(): void
     {
         $client = static::createClient();
-        $client->request('GET', '/api/portfolio/history', ['hours' => '168']);
+        $client->request('GET', '/api/portfolio/history', ['hours' => '24']);
 
         $this->assertResponseIsSuccessful();
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -58,24 +58,24 @@ class PortfolioHistoryControllerTest extends WebTestCase
         }
     }
 
-    public function testHistoryInvalidHoursReturns400(): void
+    public function testHistoryInvalidHoursReturns422(): void
     {
         $client = static::createClient();
         $client->request('GET', '/api/portfolio/history', ['hours' => 'invalid']);
 
-        $this->assertResponseStatusCodeSame(400);
+        $this->assertResponseStatusCodeSame(422);
         $content = $client->getResponse()->getContent();
         $data = json_decode($content, true);
         $this->assertIsArray($data);
         $this->assertArrayHasKey('error', $data);
     }
 
-    public function testHistoryHoursOutOfRangeReturns400(): void
+    public function testHistoryHoursOutOfRangeReturns422(): void
     {
         $client = static::createClient();
         $client->request('GET', '/api/portfolio/history', ['hours' => '99999']);
 
-        $this->assertResponseStatusCodeSame(400);
+        $this->assertResponseStatusCodeSame(422);
         $data = json_decode($client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $data);
     }

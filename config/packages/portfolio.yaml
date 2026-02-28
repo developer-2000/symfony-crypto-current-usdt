@@ -1,16 +1,16 @@
 # ---------------------------------------------------------------------------
-# Портфель и Binance API
+# Portfolio and Binance API
 # ---------------------------------------------------------------------------
-# Переменные в .env (необязательны; при отсутствии используются значения по умолчанию):
-#   PORTFOLIO_BTC    — количество BTC в портфеле (целое или дробное)
-#   PORTFOLIO_ETH    — количество ETH в портфеле
-#   PORTFOLIO_SOL    — количество SOL в портфеле
-#   PORTFOLIO_USDT   — количество USDT в портфеле (уже в долларах, без пересчёта)
-#   BINANCE_API_BASE_URL — базовый URL Binance API
-#   BINANCE_SYMBOLS  — символы для запроса цен через запятую (BTCUSDT,ETHUSDT,SOLUSDT)
-#   BINANCE_TIMEOUT  — таймаут HTTP-запроса к Binance API в секундах (по умолчанию 10)
-#   PORTFOLIO_SNAPSHOT_GRANULARITY — hour | minute (новая запись каждую минуту, для cron */1) | second (для теста)
-#   PORTFOLIO_AMOUNT_USDT_SCALE — кол-во знаков после запятой для amount_usdt (по умолчанию 8)
+# .env variables (optional; defaults used if not set):
+#   PORTFOLIO_BTC    — BTC amount in portfolio (int or float)
+#   PORTFOLIO_ETH    — ETH amount in portfolio
+#   PORTFOLIO_SOL    — SOL amount in portfolio
+#   PORTFOLIO_USDT   — USDT amount in portfolio (already in dollars, no conversion)
+#   BINANCE_API_BASE_URL — Binance API base URL
+#   BINANCE_SYMBOLS  — comma-separated symbols for price requests (BTCUSDT,ETHUSDT,SOLUSDT)
+#   BINANCE_TIMEOUT  — HTTP request timeout to Binance API in seconds (default 10)
+#   PORTFOLIO_SNAPSHOT_GRANULARITY — hour | minute (one record per minute, cron */1) | second (for testing)
+#   PORTFOLIO_AMOUNT_USDT_SCALE — decimal places for amount_usdt (default 8)
 # ---------------------------------------------------------------------------
 
 parameters:

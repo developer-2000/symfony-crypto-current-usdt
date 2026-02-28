@@ -13,6 +13,9 @@ use Psr\Log\LoggerInterface;
 
 class LogManager
 {
+    /** @var array<string, LoggerInterface> loggers by name|type key for reuse */
+    private array $loggerCache = [];
+
     public function __construct(
         private readonly Connection $connection,
         private readonly string $projectDir,
@@ -20,14 +23,19 @@ class LogManager
     }
 
     /**
-     * Возвращает динамический логгер.
-     * Универсальный: имя можно не передавать — подставится 'app' (файл app.log, канал app).
+     * Returns a dynamic logger.
+     * Optional name defaults to 'app' (errors.log channel); other names use var/log/{name}.log for type=file.
      *
-     * @param string $name используется и как канал Monolog, и как имя файла при type=file: для name='app' пишет только в errors.log (Error); для иного имени — var/log/{name}.log.
+     * @param string $name Monolog channel and, for type=file, log filename: 'app' writes to errors.log (Error level); others to var/log/{name}.log
      * @param string $type 'file'|'db'
      */
     public function getLogger(string $name = 'app', string $type = 'file'): LoggerInterface
     {
+        $key = $name . '|' . $type;
+        if (isset($this->loggerCache[$key])) {
+            return $this->loggerCache[$key];
+        }
+
         $logger = new Logger($name);
 
         if ($type === 'file') {
@@ -60,6 +68,8 @@ class LogManager
                 }
             });
         }
+
+        $this->loggerCache[$key] = $logger;
 
         return $logger;
     }

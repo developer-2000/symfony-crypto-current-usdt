@@ -19,7 +19,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:portfolio:snapshot',
-    description: 'Создаёт почасовой снапшот стоимости портфеля в USDT (вызывается cron по расписанию).',
+    description: 'Creates hourly portfolio valuation snapshot in USDT (run by cron).',
 )]
 final class PortfolioSnapshotCommand extends Command
 {
@@ -69,7 +69,7 @@ final class PortfolioSnapshotCommand extends Command
             } else {
                 $out('skip Mercure (no snapshot in DB)');
             }
-            $io->success('Снапшот портфеля сохранён.');
+            $io->success('Portfolio snapshot saved.');
 
             return Command::SUCCESS;
         } catch (BinanceApiException $e) {
@@ -82,7 +82,7 @@ final class PortfolioSnapshotCommand extends Command
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
             ]);
-            $io->error('Ошибка Binance API: ' . $e->getMessage());
+            $io->error('Binance API error: ' . $e->getMessage());
 
             return Command::FAILURE;
         } catch (\Throwable $e) {
@@ -95,7 +95,7 @@ final class PortfolioSnapshotCommand extends Command
                 'message' => $e->getMessage(),
                 'exception' => $e::class,
             ]);
-            $io->error('Ошибка: ' . $e->getMessage());
+            $io->error('Error: ' . $e->getMessage());
 
             return Command::FAILURE;
         }

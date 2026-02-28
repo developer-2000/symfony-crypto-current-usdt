@@ -19,7 +19,7 @@ class PortfolioSnapshotRepositoryTest extends KernelTestCase
 
     public function testFindForHistoryReturnsArrayOrderedByCalculatedAt(): void
     {
-        $result = $this->repository->findForHistory(null, null, 24);
+        $result = $this->repository->findForHistory(24, null);
 
         $this->assertIsArray($result);
         $prev = null;
@@ -33,16 +33,10 @@ class PortfolioSnapshotRepositoryTest extends KernelTestCase
         }
     }
 
-    public function testFindForHistoryWithFromTo(): void
+    public function testFindForHistoryWithMinutes(): void
     {
-        $from = new \DateTimeImmutable('2020-01-01 00:00:00', new \DateTimeZone('UTC'));
-        $to = new \DateTimeImmutable('2020-01-02 00:00:00', new \DateTimeZone('UTC'));
-        $result = $this->repository->findForHistory($from, $to, null);
+        $result = $this->repository->findForHistory(null, 60);
 
         $this->assertIsArray($result);
-        foreach ($result as $snapshot) {
-            $this->assertGreaterThanOrEqual($from, $snapshot->getCalculatedAt());
-            $this->assertLessThanOrEqual($to, $snapshot->getCalculatedAt());
-        }
     }
 }

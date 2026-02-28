@@ -30,15 +30,32 @@ final class BinancePriceService implements BinancePriceServiceInterface
     public function getAvgPrices(array $symbols): array
     {
         $symbols = array_values(array_unique($symbols));
-        $result = [];
-
+        $url = rtrim($this->baseUri, '/') . self::AVG_PRICE_PATH;
+        $responses = [];
         foreach ($symbols as $symbol) {
+            $responses[$symbol] = $this->httpClient->request('GET', $url, [
+                'query' => ['symbol' => $symbol],
+                'timeout' => $this->timeout,
+            ]);
+        }
+        foreach ($this->httpClient->stream($responses) as $response => $chunk) {
+        }
+        return $this->parseResponses($responses);
+    }
+
+    /**
+     * Parses Binance API responses by symbol and returns symbol => price array.
+     * Used after parallel request in getAvgPrices for validation and price extraction.
+     *
+     * @param array<string, \Symfony\Contracts\HttpClient\ResponseInterface> $responses
+     * @return array<string, float>
+     * @throws BinanceApiException
+     */
+    private function parseResponses(array $responses): array
+    {
+        $result = [];
+        foreach ($responses as $symbol => $response) {
             try {
-                $url = rtrim($this->baseUri, '/') . self::AVG_PRICE_PATH;
-                $response = $this->httpClient->request('GET', $url, [
-                    'query' => ['symbol' => $symbol],
-                    'timeout' => $this->timeout,
-                ]);
                 $statusCode = $response->getStatusCode();
                 if ($statusCode !== 200) {
                     $this->logger->warning('Binance API non-200 response', [
@@ -71,7 +88,6 @@ final class BinancePriceService implements BinancePriceServiceInterface
                 );
             }
         }
-
         return $result;
     }
 }

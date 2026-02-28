@@ -13,14 +13,13 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: ""
       CRON_SNAPSHOT_MINUTES: ${CRON_SNAPSHOT_MINUTES:-1}
-      # Пусто = не запускать цикл каждые N сек, использовать только cron по минутам
+      # Empty = do not run loop every N sec, use cron by minutes only
       SNAPSHOT_INTERVAL_SECONDS: ""
       MERCURE_URL: http://mercure:3000/.well-known/mercure
       MERCURE_PUBLIC_URL: http://localhost:8080/.well-known/mercure
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:-!ChangeMe!}
     depends_on:
       - db
-      - redis
       - mercure
     networks:
       - rnp_network
@@ -57,14 +56,6 @@ services:
       - db_data:/var/lib/mysql
     networks:
       - rnp_network
-
-  redis:
-    image: redis:alpine
-    container_name: redis
-    networks:
-      - rnp_network
-    ports:
-      - "6379:6379"
 
   phpmyadmin:
     image: phpmyadmin:latest
