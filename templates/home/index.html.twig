@@ -1,0 +1,322 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Дашборд портфеля — стоимость в USDT{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+    .header-right{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+    .mercure-status{font-size:1.125rem;font-weight:600;color:var(--text-muted,#8b9cb3);}
+    .mercure-status__state--on{color:var(--accent,#3fb950);}
+    .mercure-status__state--off{color:var(--negative,#f85149);}
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="page">
+    <header class="page-header">
+        <h1><a href="{{ path('app_home') }}">Портфель USDT</a></h1>
+        <div class="header-right">
+            <div id="mercure-status" class="mercure-status" aria-live="polite" title="Статус подписки Mercure">Mercure (<span id="mercure-state" class="mercure-status__state mercure-status__state--off">—</span>)</div>
+            <div class="period-selector" role="tablist" aria-label="Период графика">
+                <button type="button" class="active" data-minutes="10" role="tab" aria-selected="true">10 мин</button>
+                <button type="button" data-hours="1" role="tab" aria-selected="false">1 ч</button>
+                <button type="button" data-hours="24" role="tab" aria-selected="false">24 ч</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <p class="formula-line">total_usdt = BTC_amount×BTC_price + ETH_amount×ETH_price + SOL_amount×SOL_price + USDT_amount</p>
+
+        <div class="dashboard-row">
+            <div class="cards-col">
+                <div class="cards">
+                    <div class="card" id="card-last">
+                        <div class="card__label">Текущая стоимость</div>
+                        <div class="card__value" id="value-last">—</div>
+                    </div>
+                    <div class="card" id="card-change">
+                        <div class="card__label">Изменение за период</div>
+                        <div class="card__value" id="value-change">—</div>
+                    </div>
+                </div>
+            </div>
+            <section class="events-section" aria-label="Журнал стоимости">
+                <div class="events-section__head">
+                    <h2 class="events-section__title">Журнал стоимости</h2>
+                    <h3 class="history-block__title">История за <span id="history-period-label">10 мин</span></h3>
+                </div>
+                <div id="history-block" class="history-block hidden">
+                    <ul id="history-list" class="history-list"></ul>
+                </div>
+            </section>
+        </div>
+
+        <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+        <div class="chart-wrap" id="chart-wrap">
+            <div id="chart-state-loading" class="state-message">Загрузка…</div>
+            <div id="chart-state-empty" class="state-message hidden">Нет данных за выбранный период.</div>
+            <div id="chart-state-error" class="state-message error hidden"></div>
+            <div id="chart-container" class="hidden" style="position: relative; height: 320px;">
+                <canvas id="portfolio-chart" aria-label="График стоимости портфеля по времени"></canvas>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<script>
+(function () {
+    const API_URL = '{{ path('api_portfolio_history_index') }}';
+    const MERCURE_SUBSCRIBE_URL = {{ mercure(['portfolio/snapshots'], { subscribe: ['portfolio/snapshots'] })|json_encode|raw }};
+    const cards = { last: document.getElementById('value-last'), change: document.getElementById('value-change') };
+    const wrap = document.getElementById('chart-wrap');
+    const historyBlock = document.getElementById('history-block');
+    const historyPeriodLabel = document.getElementById('history-period-label');
+    const historyList = document.getElementById('history-list');
+    const stateLoading = document.getElementById('chart-state-loading');
+    const stateEmpty = document.getElementById('chart-state-empty');
+    const stateError = document.getElementById('chart-state-error');
+    const container = document.getElementById('chart-container');
+    const canvas = document.getElementById('portfolio-chart');
+
+    let chart = null;
+    let currentPeriod = { minutes: 10 };
+
+    function formatUsdt(n) {
+        if (n == null || Number.isNaN(n)) return '—';
+        return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' USDT';
+    }
+
+    function formatPercent(n) {
+        if (n == null || Number.isNaN(n)) return '—';
+        const s = n >= 0 ? '+' + n.toFixed(2) : n.toFixed(2);
+        return s + '%';
+    }
+
+    function setCardClass(el, positive) {
+        el.classList.remove('card__value--positive', 'card__value--negative');
+        if (positive === true) el.classList.add('card__value--positive');
+        if (positive === false) el.classList.add('card__value--negative');
+    }
+
+    function showState(id) {
+        [stateLoading, stateEmpty, stateError, container].forEach(function (el) {
+            el.classList.add('hidden');
+        });
+        const show = document.getElementById(id);
+        if (show) show.classList.remove('hidden');
+    }
+
+    function load(period, skipCache) {
+        currentPeriod = period;
+        showState('chart-state-loading');
+        var url = API_URL + (period.minutes != null ? '?minutes=' + encodeURIComponent(period.minutes) : '?hours=' + encodeURIComponent(period.hours));
+        if (skipCache) url += '&_=' + Date.now();
+        fetch(url)
+            .then(function (r) {
+                if (!r.ok) throw new Error('Ошибка загрузки: ' + r.status);
+                return r.json();
+            })
+            .then(function (data) {
+                if (!Array.isArray(data) || data.length === 0) {
+                    cards.last.textContent = '—';
+                    cards.change.textContent = '—';
+                    showState('chart-state-empty');
+                    if (chart) { chart.destroy(); chart = null; }
+                    if (historyBlock && historyList) {
+                        historyBlock.classList.remove('hidden');
+                        historyPeriodLabel.textContent = periodLabel(currentPeriod);
+                        historyList.innerHTML = '<li class="history-item history-item--empty">Нет данных за выбранный период.</li>';
+                        historyList.classList.remove('hidden');
+                    }
+                    return;
+                }
+                const last = data[data.length - 1].amount_usdt;
+                const first = data[0].amount_usdt;
+                const changePct = first && first !== 0 ? ((last - first) / first) * 100 : null;
+                cards.last.textContent = formatUsdt(last);
+                cards.change.textContent = formatPercent(changePct);
+                setCardClass(cards.change, changePct != null && changePct >= 0);
+
+                const labels = data.map(function (d) {
+                    const t = new Date(d.time);
+                    return t.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                });
+                const values = data.map(function (d) { return d.amount_usdt; });
+
+                showState('chart-container');
+                const style = getComputedStyle(document.documentElement);
+                const gridColor = style.getPropertyValue('--chart-grid').trim() || '#2d3a4d';
+                const lineColor = style.getPropertyValue('--chart-line').trim() || '#3fb950';
+                const textMuted = style.getPropertyValue('--text-muted').trim() || '#8b9cb3';
+
+                if (chart) chart.destroy();
+                chart = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'USDT',
+                            data: values,
+                            borderColor: lineColor,
+                            backgroundColor: lineColor + '20',
+                            fill: true,
+                            tension: 0.2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: gridColor },
+                                ticks: { color: textMuted, maxTicksLimit: 10 }
+                            },
+                            y: {
+                                grid: { color: gridColor },
+                                ticks: { color: textMuted }
+                            }
+                        }
+                    }
+                });
+
+                if (historyBlock && historyList && historyPeriodLabel) {
+                    historyBlock.classList.remove('hidden');
+                    historyPeriodLabel.textContent = periodLabel(currentPeriod);
+                    historyList.innerHTML = data.slice().reverse().map(function (d) {
+                        var t = new Date(d.time);
+                        var timeStr = t.toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        return '<li class="history-item"><span class="history-item__time">' + escapeHtml(timeStr) + '</span> <span class="history-item__value">' + formatUsdt(d.amount_usdt) + '</span></li>';
+                    }).join('');
+                    historyList.classList.remove('hidden');
+                }
+            })
+            .catch(function (err) {
+                cards.last.textContent = '—';
+                cards.change.textContent = '—';
+                stateError.textContent = err.message || 'Ошибка загрузки данных.';
+                showState('chart-state-error');
+                if (chart) { chart.destroy(); chart = null; }
+                if (historyBlock && historyList) {
+                    historyBlock.classList.remove('hidden');
+                    if (historyPeriodLabel) historyPeriodLabel.textContent = periodLabel(currentPeriod);
+                    historyList.innerHTML = '<li class="history-item history-item--error">Ошибка загрузки.</li>';
+                    historyList.classList.remove('hidden');
+                }
+            });
+    }
+
+    function periodLabel(period) {
+        if (period.minutes != null) return period.minutes === 10 ? '10 мин' : period.minutes + ' мин';
+        if (period.hours === 1) return '1 ч';
+        if (period.hours === 24) return '24 ч';
+        return period.hours + ' ч';
+    }
+
+    function getPeriodFromUrl() {
+        var p = new URLSearchParams(window.location.search);
+        var m = p.get('minutes');
+        var h = p.get('hours');
+        if (m !== null && m !== '') { var n = parseInt(m, 10); if (n >= 1 && n <= 43200) return { minutes: n }; }
+        if (h !== null && h !== '') { var n = parseInt(h, 10); if (n >= 1 && n <= 720) return { hours: n }; }
+        return null;
+    }
+
+    function setPeriodInUrl(period) {
+        var url = new URL(window.location.href);
+        url.searchParams.delete('minutes');
+        url.searchParams.delete('hours');
+        if (period.minutes != null) url.searchParams.set('minutes', String(period.minutes));
+        else url.searchParams.set('hours', String(period.hours));
+        window.history.pushState({}, '', url.toString());
+    }
+
+    function setActiveButtonForPeriod(period) {
+        document.querySelectorAll('.period-selector button').forEach(function (b) {
+            var m = b.getAttribute('data-minutes');
+            var h = b.getAttribute('data-hours');
+            var match = (period.minutes != null && m !== null && m !== '' && parseInt(m, 10) === period.minutes) ||
+                (period.hours != null && h !== null && h !== '' && parseInt(h, 10) === period.hours);
+            b.classList.toggle('active', !!match);
+            b.setAttribute('aria-selected', match ? 'true' : 'false');
+        });
+    }
+
+    document.querySelectorAll('.period-selector button').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var period;
+            var m = this.getAttribute('data-minutes');
+            var h = this.getAttribute('data-hours');
+            if (m !== null && m !== '') period = { minutes: parseInt(m, 10) };
+            else period = { hours: parseInt(h, 10) };
+            setPeriodInUrl(period);
+            setActiveButtonForPeriod(period);
+            load(period);
+        });
+    });
+
+    function showToast(text) {
+        var toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.textContent = text;
+        toast.classList.remove('hidden');
+        setTimeout(function () { toast.classList.add('hidden'); }, 4000);
+    }
+
+    var mercureStateEl = document.getElementById('mercure-state');
+    function setMercureState(on) {
+        if (!mercureStateEl) return;
+        mercureStateEl.textContent = on ? 'ON' : 'OFF';
+        mercureStateEl.classList.remove('mercure-status__state--on', 'mercure-status__state--off');
+        mercureStateEl.classList.add(on ? 'mercure-status__state--on' : 'mercure-status__state--off');
+    }
+    var mercureEventSource = null;
+    if (MERCURE_SUBSCRIBE_URL) {
+        try {
+            setMercureState(false);
+            mercureEventSource = new EventSource(MERCURE_SUBSCRIBE_URL);
+            mercureEventSource.onopen = function () {
+                setMercureState(true);
+            };
+            mercureEventSource.onmessage = function (e) {
+                var payload = null;
+                try { payload = e.data ? JSON.parse(e.data) : null; } catch (err) {}
+                if (payload && typeof payload.amount_usdt === 'number' && cards.last) {
+                    cards.last.textContent = formatUsdt(payload.amount_usdt);
+                }
+                showToast('Новые данные по портфелю');
+                load(currentPeriod, true);
+            };
+            mercureEventSource.onerror = function () {
+                setMercureState(false);
+            };
+            window.addEventListener('beforeunload', function () {
+                if (mercureEventSource) mercureEventSource.close();
+            });
+        } catch (err) {
+            setMercureState(false);
+        }
+    } else {
+        setMercureState(false);
+    }
+
+    function escapeHtml(s) {
+        var div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+
+    var initialPeriod = getPeriodFromUrl() || { minutes: 10 };
+    currentPeriod = initialPeriod;
+    setActiveButtonForPeriod(initialPeriod);
+    if (historyPeriodLabel) historyPeriodLabel.textContent = periodLabel(initialPeriod);
+    load(initialPeriod);
+})();
+</script>
+{% endblock %}

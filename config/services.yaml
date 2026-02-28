@@ -1,0 +1,51 @@
+parameters:
+    portfolio.snapshot_granularity: '%env(default:_portfolio_snapshot_granularity_default:PORTFOLIO_SNAPSHOT_GRANULARITY)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+
+    App\Service\LogManager:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Service\Binance\BinancePriceService:
+        arguments:
+            $httpClient: '@http_client'
+            $baseUri: '%binance.api_base_url%'
+            $timeout: '%binance.timeout%'
+            $symbols: '%binance.symbols%'
+
+    App\Service\Binance\BinancePriceServiceInterface: '@App\Service\Binance\BinancePriceService'
+
+    App\Service\PortfolioValuationService:
+        arguments:
+            $snapshotGranularity: '%portfolio.snapshot_granularity%'
+            $amountUsdtScale: '%portfolio.amount_usdt_scale%'
+            $amounts: '%portfolio.amounts%'
+            $symbols: '%binance.symbols%'
+
+    App\Command\PortfolioSnapshotCommand:
+
+    App\Controller\Api\PortfolioHistoryController:
+        arguments:
+            $maxHours: '%portfolio_history.max_hours%'
+            $defaultHours: '%portfolio_history.default_hours%'
+
+    App\Service\AppLogReader:
+        arguments:
+            $defaultLimit: '%events_api.limit_default%'
+
+    App\Controller\Api\EventsController:
+        arguments:
+            $defaultLimit: '%events_api.limit_default%'
+            $maxLimit: '%events_api.limit_max%'
+
+    App\Controller\Api\PortfolioBreakdownController:
+        arguments:
+            $amounts: '%portfolio.amounts%'
+            $symbols: '%binance.symbols%'

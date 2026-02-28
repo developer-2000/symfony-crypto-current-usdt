@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+>
+    <php>
+        <env name="KERNEL_CLASS" value="App\Kernel"/>
+        <env name="APP_ENV" value="test"/>
+        <!-- DATABASE_URL подхватывается из .env (для тестов с БД нужна поднятая БД) -->
+        <env name="DEFAULT_URI" value="http://localhost"/>
+    </php>
+    <testsuites>
+        <!-- По умолчанию только юнит-тесты (без БД). Интеграционные: php vendor/bin/simple-phpunit tests/Controller tests/Repository -->
+        <testsuite name="Project Test Suite">
+            <directory>tests/Service</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

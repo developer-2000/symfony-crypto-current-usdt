@@ -1,0 +1,89 @@
+services:
+  app:
+    build: .
+    container_name: app
+    volumes:
+      - .:/var/www/html
+      - app_vendor:/var/www/html/vendor
+    environment:
+      APP_ENV: dev
+      APP_SECRET: change_me_in_production
+      DATABASE_URL: mysql://root:@db:3306/lytvynov_crypto
+      DB_DATABASE: lytvynov_crypto
+      DB_USERNAME: root
+      DB_PASSWORD: ""
+      CRON_SNAPSHOT_MINUTES: ${CRON_SNAPSHOT_MINUTES:-1}
+      # Пусто = не запускать цикл каждые N сек, использовать только cron по минутам
+      SNAPSHOT_INTERVAL_SECONDS: ""
+      MERCURE_URL: http://mercure:3000/.well-known/mercure
+      MERCURE_PUBLIC_URL: http://localhost:8080/.well-known/mercure
+      MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:-!ChangeMe!}
+    depends_on:
+      - db
+      - redis
+      - mercure
+    networks:
+      - rnp_network
+    ports:
+      - "8080:80"
+
+  mercure:
+    image: dunglas/mercure:latest
+    container_name: mercure
+    volumes:
+      - ./docker/mercure/Caddyfile:/etc/caddy/Caddyfile
+    environment:
+      MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:-!ChangeMe!}
+      MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:-!ChangeMe!}
+    command: /usr/bin/caddy run --config /etc/caddy/Caddyfile
+    networks:
+      - rnp_network
+    ports:
+      - "3000:3000"
+
+  db:
+    image: mysql:8.0
+    container_name: db
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "1"
+      MYSQL_DATABASE: lytvynov_crypto
+    command: >
+      --innodb_buffer_pool_size=2G
+      --innodb_log_buffer_size=32M
+      --max_allowed_packet=64M
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - rnp_network
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    networks:
+      - rnp_network
+    ports:
+      - "6379:6379"
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      - db
+    networks:
+      - rnp_network
+    ports:
+      - "8081:80"
+
+networks:
+  rnp_network:
+    driver: bridge
+
+volumes:
+  app_vendor:
+  db_data:

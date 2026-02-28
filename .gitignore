@@ -1,0 +1,20 @@
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
+/public/bundles/
+/var/
+/vendor/
+###> local ###
+/.cursor/
+*.txt
+
+# Windows reserved device names (Git cannot index them)
+/NUL
+NUL
+CON
+PRN
+AUX
+COM1
+LPT1

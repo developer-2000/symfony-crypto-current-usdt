@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------------------
+# Портфель и Binance API
+# ---------------------------------------------------------------------------
+# Переменные в .env (необязательны; при отсутствии используются значения по умолчанию):
+#   PORTFOLIO_BTC    — количество BTC в портфеле (целое или дробное)
+#   PORTFOLIO_ETH    — количество ETH в портфеле
+#   PORTFOLIO_SOL    — количество SOL в портфеле
+#   PORTFOLIO_USDT   — количество USDT в портфеле (уже в долларах, без пересчёта)
+#   BINANCE_API_BASE_URL — базовый URL Binance API
+#   BINANCE_SYMBOLS  — символы для запроса цен через запятую (BTCUSDT,ETHUSDT,SOLUSDT)
+#   BINANCE_TIMEOUT  — таймаут HTTP-запроса к Binance API в секундах (по умолчанию 10)
+#   PORTFOLIO_SNAPSHOT_GRANULARITY — hour | minute (новая запись каждую минуту, для cron */1) | second (для теста)
+#   PORTFOLIO_AMOUNT_USDT_SCALE — кол-во знаков после запятой для amount_usdt (по умолчанию 8)
+# ---------------------------------------------------------------------------
+
+parameters:
+    _portfolio_snapshot_granularity_default: 'hour'
+    _portfolio_amount_usdt_scale_default: 8
+    _portfolio_default_btc: 1
+    _portfolio_default_eth: 10
+    _portfolio_default_sol: 50
+    _portfolio_default_usdt: 5000
+    _binance_default_base_url: 'https://api.binance.com'
+    _binance_default_symbols: 'BTCUSDT,ETHUSDT,SOLUSDT'
+
+    portfolio.amounts:
+        btc: '%env(int:default:_portfolio_default_btc:PORTFOLIO_BTC)%'
+        eth: '%env(int:default:_portfolio_default_eth:PORTFOLIO_ETH)%'
+        sol: '%env(int:default:_portfolio_default_sol:PORTFOLIO_SOL)%'
+        usdt: '%env(float:default:_portfolio_default_usdt:PORTFOLIO_USDT)%'
+    binance.api_base_url: '%env(default:_binance_default_base_url:BINANCE_API_BASE_URL)%'
+    _binance_timeout_default: 10
+    binance.timeout: '%env(int:default:_binance_timeout_default:BINANCE_TIMEOUT)%'
+    binance.symbols: '%env(csv:default:_binance_default_symbols:BINANCE_SYMBOLS)%'
+
+    portfolio.amount_usdt_scale: '%env(int:default:_portfolio_amount_usdt_scale_default:PORTFOLIO_AMOUNT_USDT_SCALE)%'

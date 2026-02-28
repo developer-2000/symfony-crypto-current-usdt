@@ -1,0 +1,10 @@
+# Web — как Laravel routes/web.php
+web:
+    resource: ../src/Controller/Web/
+    type: attribute
+
+# API с префиксом /api — как Laravel routes/api.php
+api:
+    resource: ../src/Controller/Api/
+    type: attribute
+    prefix: /api

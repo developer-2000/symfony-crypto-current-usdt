@@ -1,0 +1,13 @@
+vendor
+node_modules
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+*.md
+!docker-performance-setup.md
+.idea
+.cursor
+var
+temp_symfony

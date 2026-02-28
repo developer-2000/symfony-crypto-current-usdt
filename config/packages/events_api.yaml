@@ -1,0 +1,13 @@
+# ---------------------------------------------------------------------------
+# API GET /api/events — лимиты
+# ---------------------------------------------------------------------------
+# Переменные в .env (необязательны):
+#   EVENTS_API_LIMIT_DEFAULT — лимит записей по умолчанию при отсутствии ?limit=
+#   EVENTS_API_LIMIT_MAX     — максимум записей за один запрос
+# ---------------------------------------------------------------------------
+
+parameters:
+    _events_api_limit_default: 50
+    _events_api_limit_max: 100
+    events_api.limit_default: '%env(int:default:_events_api_limit_default:EVENTS_API_LIMIT_DEFAULT)%'
+    events_api.limit_max: '%env(int:default:_events_api_limit_max:EVENTS_API_LIMIT_MAX)%'
