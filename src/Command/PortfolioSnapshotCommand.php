@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Api\PortfolioApiFormat;
 use App\Exception\BinanceApiException;
 use App\Repository\PortfolioSnapshotRepository;
 use App\Service\LogManager;
@@ -56,7 +57,7 @@ final class PortfolioSnapshotCommand extends Command
                 $last = $this->portfolioSnapshotRepository->findLatest();
                 if ($last !== null) {
                     $payload = [
-                        'calculated_at' => $last->getCalculatedAt()->format('Y-m-d\TH:i:sP'),
+                        'calculated_at' => $last->getCalculatedAt()->format(PortfolioApiFormat::DATE_TIME_ISO8601),
                         'amount_usdt' => (float) $last->getAmountUsdt(),
                     ];
                     $out('publishing last snapshot to Mercure (duplicate hour)');

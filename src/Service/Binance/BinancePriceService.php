@@ -22,6 +22,9 @@ final class BinancePriceService implements BinancePriceServiceInterface
     }
 
     /**
+     * Fetches 5-minute average price per symbol via Binance avgPrice (one request per symbol, executed in parallel).
+     * Keeps same semantics as in spec; returns symbol => price for portfolio calculation.
+     *
      * @param list<string> $symbols
      * @return array<string, float>
      *
@@ -40,18 +43,19 @@ final class BinancePriceService implements BinancePriceServiceInterface
         }
         foreach ($this->httpClient->stream($responses) as $response => $chunk) {
         }
-        return $this->parseResponses($responses);
+        return $this->parseAvgPriceResponses($responses);
     }
 
     /**
-     * Parses Binance API responses by symbol and returns symbol => price array.
-     * Used after parallel request in getAvgPrices for validation and price extraction.
+     * Parses Binance avgPrice responses (one per symbol) into symbol => price map.
+     * Validates status and presence of numeric "price"; throws BinanceApiException on failure.
      *
      * @param array<string, \Symfony\Contracts\HttpClient\ResponseInterface> $responses
      * @return array<string, float>
+     *
      * @throws BinanceApiException
      */
-    private function parseResponses(array $responses): array
+    private function parseAvgPriceResponses(array $responses): array
     {
         $result = [];
         foreach ($responses as $symbol => $response) {

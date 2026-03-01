@@ -6,6 +6,7 @@ namespace App\Tests\Service;
 
 use App\Entity\PortfolioSnapshot;
 use App\Service\Binance\BinancePriceServiceInterface;
+use App\Service\PortfolioTotalCalculator;
 use App\Service\PortfolioValuationService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -32,7 +33,7 @@ class PortfolioValuationServiceTest extends TestCase
         $amounts = ['btc' => 1, 'eth' => 10, 'sol' => 50, 'usdt' => 5000.0];
         $symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
 
-        $service = new PortfolioValuationService($binance, $em, $amounts, $symbols);
+        $service = new PortfolioValuationService($binance, new PortfolioTotalCalculator(), $em, 'hour', 8, $amounts, $symbols);
         $service->snapshot();
 
         $this->assertInstanceOf(PortfolioSnapshot::class, $persisted);
@@ -54,7 +55,7 @@ class PortfolioValuationServiceTest extends TestCase
         $em->expects(self::once())->method('clear');
 
         $amounts = ['btc' => 1, 'eth' => 0, 'sol' => 0, 'usdt' => 0.0];
-        $service = new PortfolioValuationService($binance, $em, $amounts, ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']);
+        $service = new PortfolioValuationService($binance, new PortfolioTotalCalculator(), $em, 'hour', 8, $amounts, ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']);
         $service->snapshot();
     }
 }

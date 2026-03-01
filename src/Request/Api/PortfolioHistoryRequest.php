@@ -35,20 +35,20 @@ final class PortfolioHistoryRequest implements FormRequestInterface
     {
         $hoursRaw = $this->request->query->get('hours');
         $minutesRaw = $this->request->query->get('minutes');
+        $maxMinutes = $this->maxHours * 60;
 
         if ($minutesRaw !== null && $hoursRaw === null) {
-            $v = filter_var($minutesRaw, \FILTER_VALIDATE_INT);
-            $max = $this->maxHours * 60;
-            if ($v === false || $v < 1 || $v > $max) {
-                $this->fail(sprintf('Parameter minutes must be an integer from 1 to %d.', $max));
+            $v = $this->parseBoundedInt($minutesRaw, 1, $maxMinutes);
+            if ($v === null) {
+                $this->fail(sprintf('Parameter minutes must be an integer from 1 to %d.', $maxMinutes));
             }
             $this->minutes = $v;
             return;
         }
 
         if ($hoursRaw !== null) {
-            $v = filter_var($hoursRaw, \FILTER_VALIDATE_INT);
-            if ($v === false || $v < 1 || $v > $this->maxHours) {
+            $v = $this->parseBoundedInt($hoursRaw, 1, $this->maxHours);
+            if ($v === null) {
                 $this->fail(sprintf('Parameter hours must be an integer from 1 to %d.', $this->maxHours));
             }
             $this->hours = $v;
@@ -56,6 +56,21 @@ final class PortfolioHistoryRequest implements FormRequestInterface
         }
 
         $this->hours = $this->defaultHours;
+    }
+
+    /**
+     * Parses query string value as integer within [min, max]. Returns null if missing, not an int or out of range.
+     */
+    private function parseBoundedInt(?string $raw, int $min, int $max): ?int
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        $v = filter_var($raw, \FILTER_VALIDATE_INT);
+        if ($v === false || $v < $min || $v > $max) {
+            return null;
+        }
+        return $v;
     }
 
     private function fail(string $message): void

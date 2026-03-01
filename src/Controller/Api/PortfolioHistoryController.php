@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Api\PortfolioApiFormat;
 use App\Repository\PortfolioSnapshotRepository;
 use App\Request\Api\PortfolioHistoryRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,7 +27,7 @@ final class PortfolioHistoryController extends AbstractController
 
         $data = array_map(
             fn ($s) => [
-                'time' => $s->getCalculatedAt()->format('Y-m-d\TH:i:sP'),
+                'time' => $s->getCalculatedAt()->format(PortfolioApiFormat::DATE_TIME_ISO8601),
                 'amount_usdt' => (float) $s->getAmountUsdt(),
             ],
             $snapshots

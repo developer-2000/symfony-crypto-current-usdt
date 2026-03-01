@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Exception\BinanceApiException;
 use App\Service\PortfolioBreakdownService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,8 +28,11 @@ final class PortfolioBreakdownController extends AbstractController
     {
         try {
             $data = $this->breakdownService->getBreakdown();
-        } catch (\Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], Response::HTTP_SERVICE_UNAVAILABLE);
+        } catch (BinanceApiException $e) {
+            return $this->json(
+                ['error' => 'Service temporarily unavailable'],
+                Response::HTTP_SERVICE_UNAVAILABLE
+            );
         }
 
         return $this->json($data, Response::HTTP_OK, [], ['json_encode_options' => \JSON_UNESCAPED_SLASHES]);

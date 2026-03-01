@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Api\PortfolioApiFormat;
 use App\Entity\PortfolioSnapshot;
 use App\Service\Binance\BinancePriceServiceInterface;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -14,6 +15,7 @@ final class PortfolioValuationService
     /** @param array{btc: int|float, eth: int|float, sol: int|float, usdt: int|float} $amounts */
     public function __construct(
         private readonly BinancePriceServiceInterface $binancePriceService,
+        private readonly PortfolioTotalCalculator $totalCalculator,
         private readonly EntityManagerInterface $entityManager,
         private readonly string $snapshotGranularity,
         private readonly int $amountUsdtScale,
@@ -38,13 +40,9 @@ final class PortfolioValuationService
     public function snapshot(): ?array
     {
         $prices = $this->binancePriceService->getAvgPrices($this->symbols);
+        $result = $this->totalCalculator->calculate($this->amounts, $prices);
 
-        $total = (float) $this->amounts['usdt'];
-        $total += (float) $this->amounts['btc'] * ($prices['BTCUSDT'] ?? 0);
-        $total += (float) $this->amounts['eth'] * ($prices['ETHUSDT'] ?? 0);
-        $total += (float) $this->amounts['sol'] * ($prices['SOLUSDT'] ?? 0);
-
-        $amountUsdt = number_format((float) $total, $this->amountUsdtScale, '.', '');
+        $amountUsdt = number_format($result['total_usdt'], $this->amountUsdtScale, '.', '');
         $calculatedAt = $this->currentSlotUtc();
         $snapshot = new PortfolioSnapshot($calculatedAt, $amountUsdt);
 
@@ -52,7 +50,7 @@ final class PortfolioValuationService
             $this->entityManager->persist($snapshot);
             $this->entityManager->flush();
             return [
-                'calculated_at' => $calculatedAt->format('Y-m-d\TH:i:sP'),
+                'calculated_at' => $calculatedAt->format(PortfolioApiFormat::DATE_TIME_ISO8601),
                 'amount_usdt' => (float) $amountUsdt,
             ];
         } catch (UniqueConstraintViolationException $e) {
